@@ -5,6 +5,9 @@
  */
 package ir.ac.kntu.os.mem;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 public class VProcess extends Thread{
     public static final int ADDRESS_SPACE_BOUND = (int) (2L << 16);
 
@@ -31,8 +34,23 @@ public class VProcess extends Thread{
         for (int i = 0; i < iterationCount; i++){
             int accessAddress = addressGenerator.getNextAddress();
             VirtualAddress virtualAddress = new VirtualAddress(accessAddress);
-
-            // ToDo: call random methods
+            switch(Util.getNextRandom(3)){
+                case 0:
+                    os.allocate(pid, virtualAddress, i);
+                    break;
+                case 1:
+                    os.deAllocate(pid, virtualAddress, i);
+                    break;
+                case 2:
+                    os.read(pid, virtualAddress, i);
+                    break;
+                case 3:
+                    os.write(pid, virtualAddress, i);
+                    break;
+            }
+            try {
+                VProcess.sleep(Util.getNextRandom(1000));
+            } catch (InterruptedException ex) {}
         }
 
         // Process exiting, do cleanup
