@@ -34,18 +34,48 @@ public class VProcess extends Thread{
         for (int i = 0; i < iterationCount; i++){
             int accessAddress = addressGenerator.getNextAddress();
             VirtualAddress virtualAddress = new VirtualAddress(accessAddress);
-            switch(Util.getNextRandom(3)){
+            switch(Util.getNextRandom(4)){
                 case 0:
+            {
+                try {
                     os.allocate(pid, virtualAddress, i);
+                } catch (MemoryFullException ex) {
+                    Logger.getLogger(VProcess.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
                     break;
                 case 1:
+            {
+                try {
                     os.deAllocate(pid, virtualAddress, i);
+                } catch (AccessViolationException ex) {
+                    Logger.getLogger(VProcess.class.getName()).log(Level.SEVERE, null, ex);
+                } catch (PageFaultException ex) {
+                    Logger.getLogger(VProcess.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
                     break;
                 case 2:
+            {
+                try {
                     os.read(pid, virtualAddress, i);
+                } catch (AccessViolationException ex) {
+                    Logger.getLogger(VProcess.class.getName()).log(Level.SEVERE, null, ex);
+                } catch (PageFaultException ex) {
+                    Logger.getLogger(VProcess.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
                     break;
                 case 3:
+            {
+                try {
                     os.write(pid, virtualAddress, i);
+                } catch (AccessViolationException ex) {
+                    Logger.getLogger(VProcess.class.getName()).log(Level.SEVERE, null, ex);
+                } catch (PageFaultException ex) {
+                    Logger.getLogger(VProcess.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
                     break;
             }
             try {
