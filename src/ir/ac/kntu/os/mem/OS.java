@@ -8,6 +8,8 @@ package ir.ac.kntu.os.mem;
 import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class OS {
     public static final int MACHINE_MEM_BOUND = (int) (2L << 20);
@@ -38,24 +40,31 @@ public class OS {
         Memory = new int[MACHINE_MEM_BOUND];
         PageTables = new ArrayList<>();
         
-        threadPool.submit(() -> {
-            // TODO
-            System.out.println("Total Used Space: " + BusyFrames.size()*2 + " Bytes");
-            System.out.println("Total Free Space: " + FreeFrames.size()*2 + " Bytes");
-            for (int i = 0; i < PageTables.size(); i++) {
-                System.out.println("Process " + (i+1) + " Used Space: " + 
-                        PageTables.get(i).getNumberOfActivePages()*2 + " Bytes");
-                System.out.println("Process " + (i+1) + " Page Faults: " + 
-                        PageTables.get(i).getNumberOfPageFaults() + " Bytes");
-            }
-        });
-        
         for (int i = 0; i < Util.getNextRandom(10); i++){
             VProcess process = new VProcess(this, (i + 1));
             PageTable table = new PageTable((i + 1));
             PageTables.add(table);
             process.start();
         }
+        
+        threadPool.submit(() -> {
+            do {
+                System.out.println("Total Used Space: " + 
+                        BusyFrames.size() * (int) (1L << 10) + " Bytes");
+                System.out.println("Total Free Space: " + 
+                        FreeFrames.size() * (int) (1L << 10) + " Bytes");
+                for (int i = 0; i < PageTables.size(); i++) {
+                    System.out.println("Process " + (i+1) + " Used Space: " + 
+                            PageTables.get(i).getNumberOfActivePages() * 
+                                    (int) (1L << 10) + " Bytes");
+                    System.out.println("Process " + (i+1) + " Page Faults: " + 
+                            PageTables.get(i).getNumberOfPageFaults() + " Bytes");
+                }
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException ex) {}
+            } while(!PageTables.isEmpty());
+        });
     }
 
     public void allocate(int pid, VirtualAddress address, int size) throws MemoryFullException{
