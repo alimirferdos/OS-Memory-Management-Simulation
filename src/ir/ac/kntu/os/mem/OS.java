@@ -8,9 +8,6 @@ package ir.ac.kntu.os.mem;
 import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class OS {
     public static final int MACHINE_MEM_BOUND = (int) (2L << 20);
@@ -24,7 +21,7 @@ public class OS {
 
     private ArrayList<Integer> FreeFrames;
     private ArrayList<Integer> BusyFrames;
-    private ArrayList<VProcess> Processes;
+    private ArrayList<PageTable> PageTables;
     private int[] Memory;
             
     public OS(){
@@ -39,22 +36,25 @@ public class OS {
             FreeFrames.add(i);
         }
         Memory = new int[MACHINE_MEM_BOUND];
-        Processes = new ArrayList<>();
+        PageTables = new ArrayList<>();
         
         threadPool.submit(() -> {
+            // TODO
             System.out.println("Total Used Space: " + BusyFrames.size()*2 + " Bytes");
             System.out.println("Total Free Space: " + FreeFrames.size()*2 + " Bytes");
-            for (int i = 0; i < Processes.size(); i++) {
-                // TODO
-                System.out.println("Process " + (i+1) + " Used Space: " + Processes.get(i) + " Bytes");
-                System.out.println("Process " + (i+1) + " Page Faults: " + Processes.get(i) + " Bytes");
+            for (int i = 0; i < PageTables.size(); i++) {
+                System.out.println("Process " + (i+1) + " Used Space: " + 
+                        PageTables.get(i).getNumberOfActivePages()*2 + " Bytes");
+                System.out.println("Process " + (i+1) + " Page Faults: " + 
+                        PageTables.get(i).getNumberOfPageFaults() + " Bytes");
             }
         });
         
         for (int i = 0; i < Util.getNextRandom(10); i++){
             VProcess process = new VProcess(this, (i + 1));
+            PageTable table = new PageTable((i + 1));
+            PageTables.add(table);
             process.start();
-            Processes.add(process);
         }
     }
 
@@ -88,4 +88,5 @@ public class OS {
             
         });
     }
+    
 }
