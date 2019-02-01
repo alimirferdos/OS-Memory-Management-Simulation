@@ -10,7 +10,7 @@ package ir.ac.kntu.os.mem;
  * @author Ali
  */
 public class PageTable {
-    private int pid;
+    private final int pid;
     private int numberOfPageFaults;
     private int numberOfActivePages;
     private Page table[];
@@ -35,8 +35,14 @@ public class PageTable {
         return numberOfActivePages == (int) (1L<<6);
     }
     
-    public int translateAddress(VirtualAddress address){
-        //address.getPageNo() + address.getPageOffset();
-        return 0;
+    public int translateAddress(VirtualAddress address) throws AccessViolationException, PageFaultException{
+        Page accessed = table[address.getPageNo()];
+        if(accessed.isActive()){
+            return (accessed.getAddress() << 10)+ address.getPageOffset();
+        }
+        else{
+            numberOfPageFaults++;
+            throw new PageFaultException();
+        }
     }
 }

@@ -8,8 +8,8 @@ package ir.ac.kntu.os.mem;
 import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.sql.Timestamp;
+import java.util.concurrent.locks.*;
 
 public class OS {
     public static final int MACHINE_MEM_BOUND = (int) (2L << 20);
@@ -25,6 +25,9 @@ public class OS {
     private ArrayList<Integer> BusyFrames;
     private ArrayList<PageTable> PageTables;
     private int[] Memory;
+    ReadWriteLock FreeFramesLock = new ReentrantReadWriteLock();
+    ReadWriteLock BusyFramesLock = new ReentrantReadWriteLock();
+    ReadWriteLock MemoryLock = new ReentrantReadWriteLock();
             
     public OS(){
 
@@ -49,6 +52,8 @@ public class OS {
         
         threadPool.submit(() -> {
             do {
+                System.out.println("------------------");
+                System.out.println(new Timestamp(System.currentTimeMillis()));
                 System.out.println("Total Used Space: " + 
                         BusyFrames.size() * (int) (1L << 10) + " Bytes");
                 System.out.println("Total Free Space: " + 
@@ -69,24 +74,44 @@ public class OS {
 
     public void allocate(int pid, VirtualAddress address, int size) throws MemoryFullException{
         threadPool.submit(() -> {
-            
+           
         });
     }
 
     public void deAllocate(int pid, VirtualAddress address, int size) throws AccessViolationException, PageFaultException{
         threadPool.submit(() -> {
+            int physicalAddress = PageTables.get(pid).translateAddress(address);
             
         });
     }
 
     public void read(int pid, VirtualAddress address, int size) throws AccessViolationException, PageFaultException{
         threadPool.submit(() -> {
-            
+            int physicalAddress = PageTables.get(pid).translateAddress(address);
+            try{
+                MemoryLock.readLock().lock();
+                int output;
+                for (int i = 0; i < size; i++) {
+                    output = Memory[physicalAddress];
+                }
+            } finally {
+                MemoryLock.readLock().unlock();
+            }
         });
     }
 
     public void write(int pid, VirtualAddress address, int size) throws AccessViolationException, PageFaultException{
         threadPool.submit(() -> {
+            int physicalAddress = PageTables.get(pid).translateAddress(address);
+            try{
+                MemoryLock.writeLock().lock();
+                int output;
+                for (int i = 0; i < size; i++) {
+                    Memory[physicalAddress] = 1;
+                }
+            } finally {
+                MemoryLock.writeLock().unlock();
+            }
             
         });
     }

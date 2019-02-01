@@ -11,10 +11,16 @@ package ir.ac.kntu.os.mem;
  */
 public class Page {
     private boolean isActive;
+    private int address;
+
+    public int getAddress() { return address; }
+
+    public void setAddress(int address) { this.address = address; }
 
     public Page() { this.isActive = false; }
 
     public boolean isActive() { return isActive; }
     
     public void setActive(boolean active) { isActive = active; }
+
 }
