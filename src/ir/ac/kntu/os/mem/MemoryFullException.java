@@ -10,5 +10,7 @@ package ir.ac.kntu.os.mem;
  * @author Ali
  */
 public class MemoryFullException extends Exception{
-    
+    MemoryFullException(String msg){
+        super(msg);
+    }
 }

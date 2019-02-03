@@ -85,7 +85,9 @@ public class OS {
                     frames++;
                 }
                 if(FreeFrames.size() < frames){
-                    throw new MemoryFullException();
+                    throw new MemoryFullException("process_" + pid + 
+                            " wanted to allocate " + size + 
+                            " Bytes but the memory is currently full!");
                 }
                 
                 int frameAddr;
