@@ -2,12 +2,6 @@
 
 TODO:
 
-Process Execution Parameters
-
-AcessViolationException
-
-MemoryFullException
-
 Layered Paging
 
 IPT

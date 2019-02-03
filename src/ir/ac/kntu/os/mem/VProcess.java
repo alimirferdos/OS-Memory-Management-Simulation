@@ -38,7 +38,7 @@ public class VProcess extends Thread{
                 case 0:
             {
                 try {
-                    os.allocate(pid, virtualAddress, i);
+                    os.allocate(pid, virtualAddress, OS.ALLOCATION_SIZES[Util.getNextRandom(8)]);
                 } catch (MemoryFullException | PageFaultException ex) {
                     Logger.getLogger(VProcess.class.getName()).log(Level.SEVERE, null, ex);
                 }
@@ -47,7 +47,7 @@ public class VProcess extends Thread{
                 case 1:
             {
                 try {
-                    os.deAllocate(pid, virtualAddress, i);
+                    os.deAllocate(pid, virtualAddress, OS.ALLOCATION_SIZES[Util.getNextRandom(8)]);
                 } catch (PageFaultException ex) {
                     Logger.getLogger(VProcess.class.getName()).log(Level.SEVERE, null, ex);
                 }
@@ -56,9 +56,13 @@ public class VProcess extends Thread{
                 case 2:
             {
                 try {
-                    os.read(pid, virtualAddress, i);
+                    os.read(pid, virtualAddress, OS.ALLOCATION_SIZES[Util.getNextRandom(8)]);
                 } catch (AccessViolationException ex) {
-                    os.allocate(pid, virtualAddress, i);
+                    try {
+                        os.allocate(pid, virtualAddress, OS.ALLOCATION_SIZES[Util.getNextRandom(8)]);
+                    } catch (MemoryFullException | PageFaultException ex1) {
+                        Logger.getLogger(VProcess.class.getName()).log(Level.SEVERE, null, ex1);
+                    }
                     Logger.getLogger(VProcess.class.getName()).log(Level.SEVERE, null, ex);
                 } catch (PageFaultException ex) {
                     Logger.getLogger(VProcess.class.getName()).log(Level.SEVERE, null, ex);
@@ -68,9 +72,13 @@ public class VProcess extends Thread{
                 case 3:
             {
                 try {
-                    os.write(pid, virtualAddress, i);
+                    os.write(pid, virtualAddress, OS.ALLOCATION_SIZES[Util.getNextRandom(8)]);
                 } catch (AccessViolationException ex) {
-                    os.allocate(pid, virtualAddress, i);
+                    try {
+                        os.allocate(pid, virtualAddress, OS.ALLOCATION_SIZES[Util.getNextRandom(8)]);
+                    } catch (MemoryFullException | PageFaultException ex1) {
+                        Logger.getLogger(VProcess.class.getName()).log(Level.SEVERE, null, ex1);
+                    }
                     Logger.getLogger(VProcess.class.getName()).log(Level.SEVERE, null, ex);
                 } catch (PageFaultException ex) {
                     Logger.getLogger(VProcess.class.getName()).log(Level.SEVERE, null, ex);
