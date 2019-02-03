@@ -156,7 +156,19 @@ public class OS {
 
     public void processFinished(int pid){
         threadPool.submit(() -> {
-            
+            FreeFramesLock.lock();
+            BusyFramesLock.lock();
+            try {
+                int frameAddr;
+                for (int i = 0; i < (int) (1L<<6); i++) {
+                    frameAddr = PageTables.get(pid).deAllocate(i);
+                    BusyFrames.remove(frameAddr);
+                    FreeFrames.add(frameAddr);
+                }
+            } finally {
+                FreeFramesLock.unlock();
+                BusyFramesLock.unlock();
+            }
         });
     }
     

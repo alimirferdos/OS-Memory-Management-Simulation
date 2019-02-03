@@ -57,4 +57,10 @@ public class PageTable {
         p.setActive(false);
         return p.getAddress();
     }
+    
+    public int deAllocate(int page){
+        Page p = table[page];
+        p.setActive(false);
+        return p.getAddress();
+    }
 }
