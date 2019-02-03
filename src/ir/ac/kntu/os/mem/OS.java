@@ -12,7 +12,7 @@ import java.sql.Timestamp;
 import java.util.concurrent.locks.*;
 
 public class OS {
-    public static final int MACHINE_MEM_BOUND = (int) (2L << 20);
+    public static final int MACHINE_MEM_BOUND = (int) (1L << 20);
 
     // in bytes
     public static final int[] ALLOCATION_SIZES = new int[]
@@ -25,12 +25,14 @@ public class OS {
     private ArrayList<Integer> BusyFrames;
     private ArrayList<PageTable> PageTables;
     private int[] Memory;
-    ReadWriteLock FreeFramesLock = new ReentrantReadWriteLock();
-    ReadWriteLock BusyFramesLock = new ReentrantReadWriteLock();
-    ReadWriteLock MemoryLock = new ReentrantReadWriteLock();
+    ReentrantLock FreeFramesLock;
+    ReentrantLock BusyFramesLock;
+    ReadWriteLock MemoryLock;
             
     public OS(){
-
+        FreeFramesLock = new ReentrantLock();
+        BusyFramesLock = new ReentrantLock();
+        MemoryLock = new ReentrantReadWriteLock();
     }
 
     public void doStartup(){
@@ -45,7 +47,7 @@ public class OS {
         
         for (int i = 0; i < Util.getNextRandom(10); i++){
             VProcess process = new VProcess(this, (i + 1));
-            PageTable table = new PageTable((i + 1));
+            PageTable table = new PageTable(process);
             PageTables.add(table);
             process.start();
         }
@@ -72,9 +74,29 @@ public class OS {
         });
     }
 
-    public void allocate(int pid, VirtualAddress address, int size) throws MemoryFullException{
+    public void allocate(int pid, VirtualAddress address, int size) throws MemoryFullException, PageFaultException{
         threadPool.submit(() -> {
-           
+            FreeFramesLock.lock();
+            BusyFramesLock.lock();
+            try {
+                int frames = 1;
+                if(address.getPageOffset() + size >= 1){
+                    frames++;
+                }
+                if(FreeFrames.size() < frames){
+                    throw new MemoryFullException();
+                }
+                
+                int frameAddr;
+                for (int i = 0; i < frames; i++) {
+                    frameAddr = FreeFrames.remove(0);
+                    PageTables.get(pid).allocate(address, frameAddr);
+                    BusyFrames.add(frameAddr);
+                }
+            } finally {
+                FreeFramesLock.unlock();
+                BusyFramesLock.unlock();
+            }
         });
     }
 
@@ -105,7 +127,6 @@ public class OS {
             int physicalAddress = PageTables.get(pid).translateAddress(address);
             try{
                 MemoryLock.writeLock().lock();
-                int output;
                 for (int i = 0; i < size; i++) {
                     Memory[physicalAddress] = 1;
                 }

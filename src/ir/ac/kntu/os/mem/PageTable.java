@@ -10,22 +10,22 @@ package ir.ac.kntu.os.mem;
  * @author Ali
  */
 public class PageTable {
-    private final int pid;
+    private final VProcess process;
     private int numberOfPageFaults;
     private int numberOfActivePages;
     private Page table[];
     
-    public PageTable(int pid) {
+    public PageTable(VProcess process) {
         table = new Page[(int) (1L<<6)];
         for(int i = 0; i < table.length; i++){
            table[i] = new Page(); 
         }
         numberOfPageFaults = 0;
         numberOfActivePages = 0;
-        this.pid = pid;
+        this.process = process;
     }
 
-    public int getPid() { return pid; }
+    //public int getPid() { return process.pid; }
 
     public int getNumberOfPageFaults() { return numberOfPageFaults; }
 
@@ -35,7 +35,7 @@ public class PageTable {
         return numberOfActivePages == (int) (1L<<6);
     }
     
-    public int translateAddress(VirtualAddress address) throws AccessViolationException, PageFaultException{
+    public int translateAddress(VirtualAddress address) throws PageFaultException{
         Page accessed = table[address.getPageNo()];
         if(accessed.isActive()){
             return (accessed.getAddress() << 10)+ address.getPageOffset();
@@ -44,5 +44,11 @@ public class PageTable {
             numberOfPageFaults++;
             throw new PageFaultException();
         }
+    }
+
+    public void allocate(VirtualAddress address, int frame) throws PageFaultException{
+        Page p = table[address.getPageNo()];
+        p.setActive(true);
+        p.setAddress(frame);
     }
 }
