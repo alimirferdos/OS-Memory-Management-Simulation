@@ -51,4 +51,10 @@ public class PageTable {
         p.setActive(true);
         p.setAddress(frame);
     }
+    
+    public int deAllocate(VirtualAddress address) throws PageFaultException{
+        Page p = table[address.getPageNo()];
+        p.setActive(false);
+        return p.getAddress();
+    }
 }

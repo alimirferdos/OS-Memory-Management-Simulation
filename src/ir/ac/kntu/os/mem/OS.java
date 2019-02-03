@@ -102,8 +102,24 @@ public class OS {
 
     public void deAllocate(int pid, VirtualAddress address, int size) throws AccessViolationException, PageFaultException{
         threadPool.submit(() -> {
-            int physicalAddress = PageTables.get(pid).translateAddress(address);
-            
+            FreeFramesLock.lock();
+            BusyFramesLock.lock();
+            try {
+                int frames = 1;
+                if(address.getPageOffset() + size >= 1){
+                    frames++;
+                }
+                
+                int frameAddr;
+                for (int i = 0; i < frames; i++) {
+                    frameAddr = PageTables.get(pid).deAllocate(address);
+                    BusyFrames.remove(frameAddr);
+                    FreeFrames.add(frameAddr);
+                }
+            } finally {
+                FreeFramesLock.unlock();
+                BusyFramesLock.unlock();
+            }
         });
     }
 
