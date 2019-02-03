@@ -10,5 +10,7 @@ package ir.ac.kntu.os.mem;
  * @author Ali
  */
 public class AccessViolationException extends Exception{
-    
+    AccessViolationException(String msg){
+        super(msg);
+    }
 }

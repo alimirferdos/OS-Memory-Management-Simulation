@@ -76,6 +76,7 @@ public class OS {
 
     public void allocate(int pid, VirtualAddress address, int size) throws MemoryFullException, PageFaultException{
         threadPool.submit(() -> {
+            PageTables.get(pid).addressValidationTest(address);
             FreeFramesLock.lock();
             BusyFramesLock.lock();
             try {
@@ -100,8 +101,9 @@ public class OS {
         });
     }
 
-    public void deAllocate(int pid, VirtualAddress address, int size) throws AccessViolationException, PageFaultException{
+    public void deAllocate(int pid, VirtualAddress address, int size) throws PageFaultException{
         threadPool.submit(() -> {
+            PageTables.get(pid).addressValidationTest(address);
             FreeFramesLock.lock();
             BusyFramesLock.lock();
             try {

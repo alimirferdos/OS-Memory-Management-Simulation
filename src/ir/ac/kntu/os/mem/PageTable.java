@@ -35,22 +35,15 @@ public class PageTable {
         return numberOfActivePages == (int) (1L<<7);
     }
     
-    public int translateAddress(VirtualAddress address) throws PageFaultException{
-        int pageAddr = address.getPageNo();
-        int addrOffset = address.getPageOffset();
-        if(pageAddr >= (int) (1L<<7) || addrOffset >= (int) (1L<<11)){
-            numberOfPageFaults++;
-            throw new PageFaultException("Process " + process.getId() +
-                    " wanted to access a wrong address.");
-        }
-        Page accessed = table[pageAddr];
+    public int translateAddress(VirtualAddress address) throws PageFaultException, AccessViolationException{
+        addressValidationTest(address);
+        Page accessed = table[address.getPageNo()];
         if(accessed.isActive()){
-            return (accessed.getAddress() << 10)+ addrOffset;
+            return (accessed.getAddress() << 10)+ address.getPageOffset();
         }
         else{
             numberOfPageFaults++;
-            throw new PageFaultException("Process " + process.getId() +
-                    " wanted to access a not activated page.", true);
+            throw new AccessViolationException(process.getName()+ " wanted to access a not activated page.");
         }
     }
 
@@ -72,5 +65,14 @@ public class PageTable {
         Page p = table[page];
         p.setActive(false);
         return p.getAddress();
+    }
+    
+    public void addressValidationTest(VirtualAddress address) throws PageFaultException{
+        int pageAddr = address.getPageNo();
+        int addrOffset = address.getPageOffset();
+        if(pageAddr >= (int) (1L<<7) || addrOffset >= (int) (1L<<11)){
+            numberOfPageFaults++;
+            throw new PageFaultException(process.getName() + " wanted to access a wrong address.");
+        }
     }
 }

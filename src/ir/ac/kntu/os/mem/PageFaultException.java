@@ -10,13 +10,7 @@ package ir.ac.kntu.os.mem;
  * @author Ali
  */
 public class PageFaultException extends Exception{
-    boolean NeedMoreSpace;
     PageFaultException(String msg){
         super(msg);
-        NeedMoreSpace = false;
-    }
-    PageFaultException(String msg, boolean NeedMoreSpace){
-        super(msg);
-        this.NeedMoreSpace = NeedMoreSpace;
     }
 }
