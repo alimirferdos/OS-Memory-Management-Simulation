@@ -16,7 +16,7 @@ public class PageTable {
     private Page table[];
     
     public PageTable(VProcess process) {
-        table = new Page[(int) (1L<<6)];
+        table = new Page[(int) (1L<<7)];
         for(int i = 0; i < table.length; i++){
            table[i] = new Page(); 
         }
@@ -32,17 +32,25 @@ public class PageTable {
     public int getNumberOfActivePages() { return numberOfActivePages; }
     
     public boolean isFull(){
-        return numberOfActivePages == (int) (1L<<6);
+        return numberOfActivePages == (int) (1L<<7);
     }
     
     public int translateAddress(VirtualAddress address) throws PageFaultException{
-        Page accessed = table[address.getPageNo()];
+        int pageAddr = address.getPageNo();
+        int addrOffset = address.getPageOffset();
+        if(pageAddr >= (int) (1L<<7) || addrOffset >= (int) (1L<<11)){
+            numberOfPageFaults++;
+            throw new PageFaultException("Process " + process.getId() +
+                    " wanted to access a wrong address.");
+        }
+        Page accessed = table[pageAddr];
         if(accessed.isActive()){
-            return (accessed.getAddress() << 10)+ address.getPageOffset();
+            return (accessed.getAddress() << 10)+ addrOffset;
         }
         else{
             numberOfPageFaults++;
-            throw new PageFaultException();
+            throw new PageFaultException("Process " + process.getId() +
+                    " wanted to access a not activated page.", true);
         }
     }
 
@@ -50,11 +58,13 @@ public class PageTable {
         Page p = table[address.getPageNo()];
         p.setActive(true);
         p.setAddress(frame);
+        numberOfActivePages++;
     }
     
     public int deAllocate(VirtualAddress address) throws PageFaultException{
         Page p = table[address.getPageNo()];
         p.setActive(false);
+        numberOfActivePages--;
         return p.getAddress();
     }
     

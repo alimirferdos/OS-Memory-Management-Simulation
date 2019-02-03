@@ -80,7 +80,7 @@ public class OS {
             BusyFramesLock.lock();
             try {
                 int frames = 1;
-                if(address.getPageOffset() + size >= 1){
+                if(address.getPageOffset() + size >= 1024){
                     frames++;
                 }
                 if(FreeFrames.size() < frames){
@@ -106,7 +106,7 @@ public class OS {
             BusyFramesLock.lock();
             try {
                 int frames = 1;
-                if(address.getPageOffset() + size >= 1){
+                if(address.getPageOffset() + size >= 1024){
                     frames++;
                 }
                 

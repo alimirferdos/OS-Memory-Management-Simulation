@@ -39,7 +39,7 @@ public class VProcess extends Thread{
             {
                 try {
                     os.allocate(pid, virtualAddress, i);
-                } catch (MemoryFullException ex) {
+                } catch (MemoryFullException | PageFaultException ex) {
                     Logger.getLogger(VProcess.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
@@ -48,9 +48,7 @@ public class VProcess extends Thread{
             {
                 try {
                     os.deAllocate(pid, virtualAddress, i);
-                } catch (AccessViolationException ex) {
-                    Logger.getLogger(VProcess.class.getName()).log(Level.SEVERE, null, ex);
-                } catch (PageFaultException ex) {
+                } catch (AccessViolationException | PageFaultException ex) {
                     Logger.getLogger(VProcess.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
@@ -62,6 +60,9 @@ public class VProcess extends Thread{
                 } catch (AccessViolationException ex) {
                     Logger.getLogger(VProcess.class.getName()).log(Level.SEVERE, null, ex);
                 } catch (PageFaultException ex) {
+                    if(ex.NeedMoreSpace){
+                        os.allocate(pid, virtualAddress, i);
+                    }
                     Logger.getLogger(VProcess.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
@@ -73,6 +74,9 @@ public class VProcess extends Thread{
                 } catch (AccessViolationException ex) {
                     Logger.getLogger(VProcess.class.getName()).log(Level.SEVERE, null, ex);
                 } catch (PageFaultException ex) {
+                    if(ex.NeedMoreSpace){
+                        os.allocate(pid, virtualAddress, i);
+                    }
                     Logger.getLogger(VProcess.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
