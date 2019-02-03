@@ -30,65 +30,30 @@ public class VProcess extends Thread{
     @Override
     public void run(){
         final int iterationCount = Util.getNextRandom(100);
-
+        System.out.println(this.getName() + " will have " + iterationCount + " instructions.");
+        
         for (int i = 0; i < iterationCount; i++){
             int accessAddress = addressGenerator.getNextAddress();
             VirtualAddress virtualAddress = new VirtualAddress(accessAddress);
             switch(Util.getNextRandom(4)){
                 case 0:
-            {
-                try {
                     os.allocate(pid, virtualAddress, OS.ALLOCATION_SIZES[Util.getNextRandom(8)]);
-                } catch (MemoryFullException | PageFaultException ex) {
-                    Logger.getLogger(VProcess.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            }
                     break;
                 case 1:
-            {
-                try {
                     os.deAllocate(pid, virtualAddress, OS.ALLOCATION_SIZES[Util.getNextRandom(8)]);
-                } catch (PageFaultException ex) {
-                    Logger.getLogger(VProcess.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            }
                     break;
                 case 2:
-            {
-                try {
                     os.read(pid, virtualAddress, OS.ALLOCATION_SIZES[Util.getNextRandom(8)]);
-                } catch (AccessViolationException ex) {
-                    try {
-                        os.allocate(pid, virtualAddress, OS.ALLOCATION_SIZES[Util.getNextRandom(8)]);
-                    } catch (MemoryFullException | PageFaultException ex1) {
-                        Logger.getLogger(VProcess.class.getName()).log(Level.SEVERE, null, ex1);
-                    }
-                    Logger.getLogger(VProcess.class.getName()).log(Level.SEVERE, null, ex);
-                } catch (PageFaultException ex) {
-                    Logger.getLogger(VProcess.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            }
                     break;
                 case 3:
-            {
-                try {
                     os.write(pid, virtualAddress, OS.ALLOCATION_SIZES[Util.getNextRandom(8)]);
-                } catch (AccessViolationException ex) {
-                    try {
-                        os.allocate(pid, virtualAddress, OS.ALLOCATION_SIZES[Util.getNextRandom(8)]);
-                    } catch (MemoryFullException | PageFaultException ex1) {
-                        Logger.getLogger(VProcess.class.getName()).log(Level.SEVERE, null, ex1);
-                    }
-                    Logger.getLogger(VProcess.class.getName()).log(Level.SEVERE, null, ex);
-                } catch (PageFaultException ex) {
-                    Logger.getLogger(VProcess.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            }
                     break;
             }
             try {
                 VProcess.sleep(Util.getNextRandom(1000));
-            } catch (InterruptedException ex) {}
+            } catch (InterruptedException ex) {
+                System.err.println(ex.getMessage());
+            }
         }
 
         // Process exiting, do cleanup

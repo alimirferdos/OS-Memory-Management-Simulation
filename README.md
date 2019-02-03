@@ -1,12 +1,14 @@
 # My_project
 
-TODO:
+### Part 1 Finished!
 
-Layered Paging
+## TODO:
 
-IPT
+1. Layered Paging
 
-TLB Cache
+2. IPT
 
-Java.Util.Concurrent
+3. TLB Cache
+
+4. Java.Util.Concurrent
 

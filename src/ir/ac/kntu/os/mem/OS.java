@@ -10,6 +10,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.sql.Timestamp;
 import java.util.concurrent.locks.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class OS {
     public static final int MACHINE_MEM_BOUND = (int) (1L << 20);
@@ -44,26 +46,27 @@ public class OS {
         }
         Memory = new int[MACHINE_MEM_BOUND];
         PageTables = new ArrayList<>();
-        
-        for (int i = 0; i < Util.getNextRandom(10); i++){
-            VProcess process = new VProcess(this, (i + 1));
+        int j;
+        for (j = 0; j < Util.getNextRandom(10); j++){
+            VProcess process = new VProcess(this, (j + 1));
             PageTable table = new PageTable(process);
             PageTables.add(table);
             process.start();
         }
+        System.out.println("Checking " + j + " processes.");
         
         threadPool.submit(() -> {
             do {
                 System.out.println("------------------");
                 System.out.println(new Timestamp(System.currentTimeMillis()));
                 System.out.println("Total Used Space: " + 
-                        BusyFrames.size() * (int) (1L << 10) + " Bytes");
+                        BusyFrames.size() * 1024 + " Bytes");
                 System.out.println("Total Free Space: " + 
-                        FreeFrames.size() * (int) (1L << 10) + " Bytes");
+                        FreeFrames.size() * 1024 + " Bytes");
                 for (int i = 0; i < PageTables.size(); i++) {
                     System.out.println("Process " + (i+1) + " Used Space: " + 
                             PageTables.get(i).getNumberOfActivePages() * 
-                                    (int) (1L << 10) + " Bytes");
+                                    1024 + " Bytes");
                     System.out.println("Process " + (i+1) + " Page Faults: " + 
                             PageTables.get(i).getNumberOfPageFaults() + " Bytes");
                 }
@@ -74,9 +77,14 @@ public class OS {
         });
     }
 
-    public void allocate(int pid, VirtualAddress address, int size) throws MemoryFullException, PageFaultException{
+    public void allocate(int pid, VirtualAddress address, int size){
         threadPool.submit(() -> {
-            PageTables.get(pid).addressValidationTest(address);
+            try {
+                PageTables.get(pid).addressValidationTest(address);
+            } catch (PageFaultException ex) {
+                System.err.println(ex.getMessage());
+            }
+            
             FreeFramesLock.lock();
             BusyFramesLock.lock();
             try {
@@ -96,6 +104,8 @@ public class OS {
                     PageTables.get(pid).allocate(address, frameAddr);
                     BusyFrames.add(frameAddr);
                 }
+            } catch (MemoryFullException | PageFaultException ex) {
+                System.err.println(ex.getMessage());
             } finally {
                 FreeFramesLock.unlock();
                 BusyFramesLock.unlock();
@@ -103,9 +113,13 @@ public class OS {
         });
     }
 
-    public void deAllocate(int pid, VirtualAddress address, int size) throws PageFaultException{
+    public void deAllocate(int pid, VirtualAddress address, int size){
         threadPool.submit(() -> {
-            PageTables.get(pid).addressValidationTest(address);
+            try {
+                PageTables.get(pid).addressValidationTest(address);
+            } catch (PageFaultException ex) {
+                System.err.println(ex.getMessage());
+            }
             FreeFramesLock.lock();
             BusyFramesLock.lock();
             try {
@@ -120,6 +134,8 @@ public class OS {
                     BusyFrames.remove(frameAddr);
                     FreeFrames.add(frameAddr);
                 }
+            } catch (PageFaultException ex) {
+                System.err.println(ex.getMessage());
             } finally {
                 FreeFramesLock.unlock();
                 BusyFramesLock.unlock();
@@ -127,33 +143,48 @@ public class OS {
         });
     }
 
-    public void read(int pid, VirtualAddress address, int size) throws AccessViolationException, PageFaultException{
+    public void read(int pid, VirtualAddress address, int size){
         threadPool.submit(() -> {
-            int physicalAddress = PageTables.get(pid).translateAddress(address);
-            try{
-                MemoryLock.readLock().lock();
-                int output;
-                for (int i = 0; i < size; i++) {
-                    output = Memory[physicalAddress];
+            int physicalAddress;
+            try {
+                physicalAddress = PageTables.get(pid).translateAddress(address);
+                try{
+                    MemoryLock.readLock().lock();
+                    int output;
+                    for (int i = 0; i < size; i++) {
+                        output = Memory[physicalAddress];
+                    }
+                } finally {
+                    MemoryLock.readLock().unlock();
                 }
-            } finally {
-                MemoryLock.readLock().unlock();
+            } catch (PageFaultException ex) {
+                System.err.println(ex.getMessage());
+            } catch (AccessViolationException ex) {
+                allocate(pid, address, OS.ALLOCATION_SIZES[Util.getNextRandom(8)]);
+                System.err.println(ex.getMessage());
             }
         });
     }
 
-    public void write(int pid, VirtualAddress address, int size) throws AccessViolationException, PageFaultException{
+    public void write(int pid, VirtualAddress address, int size){
         threadPool.submit(() -> {
-            int physicalAddress = PageTables.get(pid).translateAddress(address);
-            try{
-                MemoryLock.writeLock().lock();
-                for (int i = 0; i < size; i++) {
-                    Memory[physicalAddress] = 1;
+            int physicalAddress;
+            try {
+                physicalAddress = PageTables.get(pid).translateAddress(address);
+                try{
+                    MemoryLock.writeLock().lock();
+                    for (int i = 0; i < size; i++) {
+                        Memory[physicalAddress] = 1;
+                    }
+                } finally {
+                    MemoryLock.writeLock().unlock();
                 }
-            } finally {
-                MemoryLock.writeLock().unlock();
+            } catch (PageFaultException ex) {
+                System.err.println(ex.getMessage());
+            } catch (AccessViolationException ex) {
+                allocate(pid, address, OS.ALLOCATION_SIZES[Util.getNextRandom(8)]);
+                System.err.println(ex.getMessage());
             }
-            
         });
     }
 

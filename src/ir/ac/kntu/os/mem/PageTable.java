@@ -57,7 +57,9 @@ public class PageTable {
     public int deAllocate(VirtualAddress address) throws PageFaultException{
         Page p = table[address.getPageNo()];
         p.setActive(false);
-        numberOfActivePages--;
+        if(numberOfActivePages > 0){
+            numberOfActivePages--;
+        }
         return p.getAddress();
     }
     
