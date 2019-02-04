@@ -11,7 +11,7 @@ import java.util.ArrayList;
  *
  * @author Ali
  */
-public class LayeredPageTable implements IPageTable{
+public class LayeredPageTable{
     private final VProcess process;
     private int numberOfPageFaults;
     private int numberOfActivePages;
@@ -21,7 +21,7 @@ public class LayeredPageTable implements IPageTable{
         table = new Page[16][16];
         for(int i = 0; i < 16; i++){
             for (int j = 0; j < 16; j++) {
-                table[i][j] = new Page(); 
+                table[i][j] = new Page(process.getPid(), i); 
             }
         }
         numberOfPageFaults = 0;
@@ -31,18 +31,14 @@ public class LayeredPageTable implements IPageTable{
 
     //public int getPid() { return process.pid; }
 
-    @Override
     public int getNumberOfPageFaults() { return numberOfPageFaults; }
 
-    @Override
     public int getNumberOfActivePages() { return numberOfActivePages; }
     
-    @Override
     public boolean isFull(){
         return numberOfActivePages == 128;
     }
     
-    @Override
     public int translateAddress(VirtualAddress address) throws PageFaultException, AccessViolationException{
         addressValidationTest(address);
         Page accessed = table[address.getFirstLayer()][address.getSecondLayer()];
@@ -55,7 +51,6 @@ public class LayeredPageTable implements IPageTable{
         }
     }
 
-    @Override
     public void allocate(VirtualAddress address, int frame) throws PageFaultException{
         Page p = table[address.getFirstLayer()][address.getSecondLayer()];
         p.setActive(true);
@@ -63,7 +58,6 @@ public class LayeredPageTable implements IPageTable{
         numberOfActivePages++;
     }
     
-    @Override
     public int deAllocate(VirtualAddress address) throws PageFaultException{
         Page p = table[address.getFirstLayer()][address.getSecondLayer()];
         p.setActive(false);
@@ -73,7 +67,6 @@ public class LayeredPageTable implements IPageTable{
         return p.getAddress();
     }
     
-    @Override
     public ArrayList<Integer> deAllocateAll(){
         ArrayList<Integer> frames = new ArrayList<>();
         for(int i = 0; i < 16; i++){
@@ -86,7 +79,6 @@ public class LayeredPageTable implements IPageTable{
         return frames;
     }
     
-    @Override
     public void addressValidationTest(VirtualAddress address) throws PageFaultException{
         int firstLayerPageAddr = address.getFirstLayer();
         int secondLayerPageAddr = address.getSecondLayer();

@@ -2,12 +2,11 @@
 
 ### Part 1: Normal Paging Finished!
 ### Part 2: Layered Paging Finished!
+### Part 3: Inverted Page Table Finished!
 
 ## TODO:
 
-1. IPT
+1. TLB Cache
 
-2. TLB Cache
-
-3. Java.Util.Concurrent
+2. Java.Util.Concurrent
 

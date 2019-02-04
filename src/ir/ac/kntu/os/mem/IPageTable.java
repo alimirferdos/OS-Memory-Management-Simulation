@@ -18,13 +18,13 @@ public interface IPageTable {
     
     public boolean isFull();
     
-    public int translateAddress(VirtualAddress address) throws PageFaultException, AccessViolationException;
+    public int translateAddress(VirtualAddress address, int pid) throws PageFaultException, AccessViolationException;
 
-    public void allocate(VirtualAddress address, int frame) throws PageFaultException;
+    public void allocate(VirtualAddress address, int frame, int pid) throws PageFaultException, AccessViolationException;
     
-    public int deAllocate(VirtualAddress address) throws PageFaultException;
+    public int deAllocate(VirtualAddress address, int pid) throws PageFaultException;
     
-    public ArrayList<Integer> deAllocateAll();
+    public ArrayList<Integer> deAllocateAll(int pid);
     
-    public void addressValidationTest(VirtualAddress address) throws PageFaultException;
+    public void addressValidationTest(VirtualAddress address, int pid) throws PageFaultException;
 }

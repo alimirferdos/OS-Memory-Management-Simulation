@@ -8,14 +8,14 @@ package ir.ac.kntu.os.mem;
 public class VProcess extends Thread{
     public static final int ADDRESS_SPACE_BOUND = (int) (2L << 16);
 
-    private final OS os;
+    private final I_OS os;
     private final int pid;
 
-
+    
     private int startAddress;
     private LocalityAwareRandomAddressGenerator addressGenerator;
 
-    public VProcess(OS os, int pid){
+    public VProcess(I_OS os, int pid){
         this.os = os;
         this.pid = pid;
         this.setName("process_"+pid);
@@ -55,5 +55,9 @@ public class VProcess extends Thread{
 
         // Process exiting, do cleanup
         os.processFinished(pid);
+    }
+    
+    public int getPid() {
+        return pid;
     }
 }

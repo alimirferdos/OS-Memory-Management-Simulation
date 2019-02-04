@@ -11,7 +11,7 @@ import java.util.concurrent.Executors;
 import java.sql.Timestamp;
 import java.util.concurrent.locks.*;
 
-public class OS implements I_OS{
+public class IPT_OS implements I_OS{
     public static final int MACHINE_MEM_BOUND = (int) (1L << 20);
 
     // in bytes
@@ -28,10 +28,9 @@ public class OS implements I_OS{
     ReentrantLock BusyFramesLock;
     ReadWriteLock MemoryLock;
     
-    //private ArrayList<PageTableUser> PageTables;
-    private ArrayList<LayeredPageTableUser> PageTables;
+    private InvertedPageTable PageTables;
             
-    public OS(){
+    public IPT_OS(){
         FreeFramesLock = new ReentrantLock();
         BusyFramesLock = new ReentrantLock();
         MemoryLock = new ReentrantReadWriteLock();
@@ -46,16 +45,15 @@ public class OS implements I_OS{
             FreeFrames.add(i);
         }
         Memory = new int[MACHINE_MEM_BOUND];
-        PageTables = new ArrayList<>();
+        PageTables = new InvertedPageTable();
         int j;
         for (j = 0; j < Util.getNextRandom(10); j++){
             VProcess process = new VProcess(this, (j + 1));
-            //PageTable table = new PageTable(process);
-            LayeredPageTableUser table = new LayeredPageTableUser(process);
-            PageTables.add(table);
             process.start();
         }
+        
         System.out.println("Checking " + j + " processes.");
+        PageTables.setNumberOfProcesses(j);
         
         threadPool.submit(() -> {
             do {
@@ -65,12 +63,12 @@ public class OS implements I_OS{
                         BusyFrames.size() * 1024 + " Bytes");
                 System.out.println("Total Free Space: " + 
                         FreeFrames.size() * 1024 + " Bytes");
-                for (int i = 0; i < PageTables.size(); i++) {
+                for (int i = 0; i < PageTables.getNumberOfProcesses(); i++) {
                     System.out.println("Process " + (i+1) + " Used Space: " + 
-                            PageTables.get(i).getNumberOfActivePages() * 
+                            PageTables.getNumberOfActivePages(i) * 
                                     1024 + " Bytes");
                     System.out.println("Process " + (i+1) + " Page Faults: " + 
-                            PageTables.get(i).getNumberOfPageFaults() + " Bytes");
+                            PageTables.getNumberOfPageFaults(i) + " Bytes");
                 }
                 try {
                     Thread.sleep(1000);
@@ -83,7 +81,7 @@ public class OS implements I_OS{
     public void allocate(int pid, VirtualAddress address, int size){
         threadPool.submit(() -> {
             try {
-                PageTables.get(pid).addressValidationTest(address, pid);
+                PageTables.addressValidationTest(address, pid);
             } catch (PageFaultException ex) {
                 System.err.println(ex.getMessage());
             }
@@ -104,7 +102,7 @@ public class OS implements I_OS{
                 int frameAddr;
                 for (int i = 0; i < frames; i++) {
                     frameAddr = FreeFrames.remove(0);
-                    PageTables.get(pid).allocate(address, frameAddr, pid);
+                    PageTables.allocate(address, frameAddr, pid);
                     BusyFrames.add(frameAddr);
                 }
             } catch (MemoryFullException | PageFaultException | AccessViolationException ex) {
@@ -120,7 +118,7 @@ public class OS implements I_OS{
     public void deAllocate(int pid, VirtualAddress address, int size){
         threadPool.submit(() -> {
             try {
-                PageTables.get(pid).addressValidationTest(address, pid);
+                PageTables.addressValidationTest(address, pid);
             } catch (PageFaultException ex) {
                 System.err.println(ex.getMessage());
             }
@@ -134,7 +132,7 @@ public class OS implements I_OS{
                 
                 int frameAddr;
                 for (int i = 0; i < frames; i++) {
-                    frameAddr = PageTables.get(pid).deAllocate(address, pid);
+                    frameAddr = PageTables.deAllocate(address, pid);
                     BusyFrames.remove(frameAddr);
                     FreeFrames.add(frameAddr);
                 }
@@ -152,7 +150,7 @@ public class OS implements I_OS{
         threadPool.submit(() -> {
             int physicalAddress;
             try {
-                physicalAddress = PageTables.get(pid).translateAddress(address, pid);
+                physicalAddress = PageTables.translateAddress(address, pid);
                 try{
                     MemoryLock.readLock().lock();
                     int output;
@@ -176,7 +174,7 @@ public class OS implements I_OS{
         threadPool.submit(() -> {
             int physicalAddress;
             try {
-                physicalAddress = PageTables.get(pid).translateAddress(address, pid);
+                physicalAddress = PageTables.translateAddress(address, pid);
                 try{
                     MemoryLock.writeLock().lock();
                     for (int i = 0; i < size; i++) {
@@ -200,7 +198,7 @@ public class OS implements I_OS{
             FreeFramesLock.lock();
             BusyFramesLock.lock();
             try {
-                ArrayList<Integer> frameAddresses = PageTables.get(pid).deAllocateAll(pid);
+                ArrayList<Integer> frameAddresses = PageTables.deAllocateAll(pid);
                 for (Integer f : frameAddresses) {
                     BusyFrames.remove(f);
                     FreeFrames.add(f);

@@ -7,7 +7,8 @@ package ir.ac.kntu.os.mem;
 
 public class Machine {
     public static void main(String[] args){
-        OS os = new OS();
+        //OS os = new OS();
+        IPT_OS os = new IPT_OS();
 
         os.doStartup();
     }

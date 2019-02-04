@@ -11,7 +11,7 @@ import java.util.ArrayList;
  *
  * @author Ali
  */
-public class PageTable implements IPageTable{
+public class PageTable{
     private final VProcess process;
     private int numberOfPageFaults;
     private int numberOfActivePages;
@@ -20,7 +20,7 @@ public class PageTable implements IPageTable{
     public PageTable(VProcess process) {
         table = new Page[128];
         for(int i = 0; i < table.length; i++){
-           table[i] = new Page(); 
+           table[i] = new Page(process.getPid(), i); 
         }
         numberOfPageFaults = 0;
         numberOfActivePages = 0;
@@ -29,18 +29,14 @@ public class PageTable implements IPageTable{
 
     //public int getPid() { return process.pid; }
 
-    @Override
     public int getNumberOfPageFaults() { return numberOfPageFaults; }
 
-    @Override
     public int getNumberOfActivePages() { return numberOfActivePages; }
     
-    @Override
     public boolean isFull(){
         return numberOfActivePages == 128;
     }
     
-    @Override
     public int translateAddress(VirtualAddress address) throws PageFaultException, AccessViolationException{
         addressValidationTest(address);
         Page accessed = table[address.getPageNo()];
@@ -53,7 +49,6 @@ public class PageTable implements IPageTable{
         }
     }
 
-    @Override
     public void allocate(VirtualAddress address, int frame) throws PageFaultException{
         Page p = table[address.getPageNo()];
         p.setActive(true);
@@ -61,7 +56,6 @@ public class PageTable implements IPageTable{
         numberOfActivePages++;
     }
     
-    @Override
     public int deAllocate(VirtualAddress address) throws PageFaultException{
         Page p = table[address.getPageNo()];
         p.setActive(false);
@@ -71,7 +65,6 @@ public class PageTable implements IPageTable{
         return p.getAddress();
     }
     
-    @Override
     public ArrayList<Integer> deAllocateAll(){
         ArrayList<Integer> frames = new ArrayList<>();
         for (int i = 0; i < 128; i++) {
@@ -82,7 +75,6 @@ public class PageTable implements IPageTable{
         return frames;
     }
     
-    @Override
     public void addressValidationTest(VirtualAddress address) throws PageFaultException{
         int pageAddr = address.getPageNo();
         int addrOffset = address.getPageOffset();
