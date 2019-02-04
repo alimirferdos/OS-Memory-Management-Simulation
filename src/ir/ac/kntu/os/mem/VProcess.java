@@ -5,9 +5,6 @@
  */
 package ir.ac.kntu.os.mem;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 public class VProcess extends Thread{
     public static final int ADDRESS_SPACE_BOUND = (int) (2L << 16);
 

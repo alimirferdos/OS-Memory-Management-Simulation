@@ -11,16 +11,18 @@ import java.util.ArrayList;
  *
  * @author Ali
  */
-public class PageTable implements IPageTable{
+public class LayeredPageTable implements IPageTable{
     private final VProcess process;
     private int numberOfPageFaults;
     private int numberOfActivePages;
-    private Page table[];
+    private Page table[][];
     
-    public PageTable(VProcess process) {
-        table = new Page[128];
-        for(int i = 0; i < table.length; i++){
-           table[i] = new Page(); 
+    public LayeredPageTable(VProcess process) {
+        table = new Page[16][16];
+        for(int i = 0; i < 16; i++){
+            for (int j = 0; j < 16; j++) {
+                table[i][j] = new Page(); 
+            }
         }
         numberOfPageFaults = 0;
         numberOfActivePages = 0;
@@ -43,7 +45,7 @@ public class PageTable implements IPageTable{
     @Override
     public int translateAddress(VirtualAddress address) throws PageFaultException, AccessViolationException{
         addressValidationTest(address);
-        Page accessed = table[address.getPageNo()];
+        Page accessed = table[address.getFirstLayer()][address.getSecondLayer()];
         if(accessed.isActive()){
             return (accessed.getAddress() << 10)+ address.getPageOffset();
         }
@@ -55,7 +57,7 @@ public class PageTable implements IPageTable{
 
     @Override
     public void allocate(VirtualAddress address, int frame) throws PageFaultException{
-        Page p = table[address.getPageNo()];
+        Page p = table[address.getFirstLayer()][address.getSecondLayer()];
         p.setActive(true);
         p.setAddress(frame);
         numberOfActivePages++;
@@ -63,7 +65,7 @@ public class PageTable implements IPageTable{
     
     @Override
     public int deAllocate(VirtualAddress address) throws PageFaultException{
-        Page p = table[address.getPageNo()];
+        Page p = table[address.getFirstLayer()][address.getSecondLayer()];
         p.setActive(false);
         if(numberOfActivePages > 0){
             numberOfActivePages--;
@@ -74,21 +76,25 @@ public class PageTable implements IPageTable{
     @Override
     public ArrayList<Integer> deAllocateAll(){
         ArrayList<Integer> frames = new ArrayList<>();
-        for (int i = 0; i < 128; i++) {
-            Page p = table[i];
-            p.setActive(false);
-            frames.add(p.getAddress());
+        for(int i = 0; i < 16; i++){
+            for (int j = 0; j < 16; j++) {
+                Page p = table[i][j];
+                p.setActive(false);
+                frames.add(p.getAddress());
+            }
         }
         return frames;
     }
     
     @Override
     public void addressValidationTest(VirtualAddress address) throws PageFaultException{
-        int pageAddr = address.getPageNo();
+        int firstLayerPageAddr = address.getFirstLayer();
+        int secondLayerPageAddr = address.getSecondLayer();
         int addrOffset = address.getPageOffset();
-        if(pageAddr >= 128 || addrOffset >= 2048){
+        if(firstLayerPageAddr >= 16 || secondLayerPageAddr >= 16 || addrOffset >= 2048){
             numberOfPageFaults++;
             throw new PageFaultException(process.getName() + " wanted to access a wrong address.");
         }
     }
+    
 }

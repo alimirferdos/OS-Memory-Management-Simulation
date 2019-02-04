@@ -20,4 +20,12 @@ public class VirtualAddress {
     public int getPageOffset(){
         return address & 0x03FF;
     }
+    
+    public int getFirstLayer(){
+        return (address & 0x03FF) >> 13;
+    }
+    
+    public int getSecondLayer(){
+        return (address & 0x00FF) >> 10;
+    }
 }

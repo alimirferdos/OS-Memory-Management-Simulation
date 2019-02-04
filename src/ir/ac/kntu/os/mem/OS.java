@@ -10,8 +10,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.sql.Timestamp;
 import java.util.concurrent.locks.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class OS {
     public static final int MACHINE_MEM_BOUND = (int) (1L << 20);
@@ -25,11 +23,13 @@ public class OS {
 
     private ArrayList<Integer> FreeFrames;
     private ArrayList<Integer> BusyFrames;
-    private ArrayList<PageTable> PageTables;
     private int[] Memory;
     ReentrantLock FreeFramesLock;
     ReentrantLock BusyFramesLock;
     ReadWriteLock MemoryLock;
+    
+    //private ArrayList<PageTable> PageTables;
+    private ArrayList<LayeredPageTable> PageTables;
             
     public OS(){
         FreeFramesLock = new ReentrantLock();
@@ -49,7 +49,8 @@ public class OS {
         int j;
         for (j = 0; j < Util.getNextRandom(10); j++){
             VProcess process = new VProcess(this, (j + 1));
-            PageTable table = new PageTable(process);
+            //PageTable table = new PageTable(process);
+            LayeredPageTable table = new LayeredPageTable(process);
             PageTables.add(table);
             process.start();
         }
@@ -194,11 +195,10 @@ public class OS {
             FreeFramesLock.lock();
             BusyFramesLock.lock();
             try {
-                int frameAddr;
-                for (int i = 0; i < (int) (1L<<6); i++) {
-                    frameAddr = PageTables.get(pid).deAllocate(i);
-                    BusyFrames.remove(frameAddr);
-                    FreeFrames.add(frameAddr);
+                ArrayList<Integer> frameAddresses = PageTables.get(pid).deAllocateAll();
+                for (Integer f : frameAddresses) {
+                    BusyFrames.remove(f);
+                    FreeFrames.add(f);
                 }
             } finally {
                 FreeFramesLock.unlock();
