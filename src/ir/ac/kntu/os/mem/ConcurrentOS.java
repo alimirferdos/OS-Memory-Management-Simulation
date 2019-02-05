@@ -9,9 +9,10 @@ import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.sql.Timestamp;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.*;
 
-public class OS implements I_OS{
+public class ConcurrentOS implements I_OS{
     public static final int MACHINE_MEM_BOUND = (int) (1L << 20);
 
     // in bytes
@@ -21,27 +22,23 @@ public class OS implements I_OS{
             };
     public static final ExecutorService threadPool = Executors.newFixedThreadPool(5);
 
-    private ArrayList<Integer> FreeFrames;
-    private ArrayList<Integer> BusyFrames;
+    private CopyOnWriteArrayList<Integer> FreeFrames; 
+    private CopyOnWriteArrayList<Integer> BusyFrames;
     private int[] Memory;
-    ReentrantLock FreeFramesLock;
-    ReentrantLock BusyFramesLock;
     ReadWriteLock MemoryLock;
     
     //private ArrayList<PageTableUser> PageTables;
     private ArrayList<LayeredPageTableUser> PageTables;
             
-    public OS(){
-        FreeFramesLock = new ReentrantLock();
-        BusyFramesLock = new ReentrantLock();
+    public ConcurrentOS(){
         MemoryLock = new ReentrantReadWriteLock();
     }
 
     @Override
     public void doStartup(){
         //todo: you may start data structures here like lists, paging system ...
-        FreeFrames = new ArrayList<>();
-        BusyFrames = new ArrayList<>();
+        FreeFrames = new CopyOnWriteArrayList<>();
+        BusyFrames = new CopyOnWriteArrayList<>();
         for (int i = 0; i < 1024; i++) {
             FreeFrames.add(i);
         }
@@ -59,20 +56,12 @@ public class OS implements I_OS{
         
         threadPool.submit(() -> {
             do {
-                FreeFramesLock.lock();
-                BusyFramesLock.lock();
-                try{
-                    System.out.println("------------------");
-                    System.out.println(new Timestamp(System.currentTimeMillis()));
-                    System.out.println("Total Used Space: " + 
-                            BusyFrames.size() * 1024 + " Bytes");
-                    System.out.println("Total Free Space: " + 
-                            FreeFrames.size() * 1024 + " Bytes");
-                }
-                finally {
-                    FreeFramesLock.unlock();
-                    BusyFramesLock.unlock();
-                }
+                System.out.println("------------------");
+                System.out.println(new Timestamp(System.currentTimeMillis()));
+                System.out.println("Total Used Space: " + 
+                        BusyFrames.size() * 1024 + " Bytes");
+                System.out.println("Total Free Space: " + 
+                        FreeFrames.size() * 1024 + " Bytes");
                 for (int i = 0; i < PageTables.size(); i++) {
                     System.out.println("Process " + (i+1) + " Used Space: " + 
                             PageTables.get(i).getNumberOfActivePages() * 
@@ -96,8 +85,6 @@ public class OS implements I_OS{
                 System.err.println(ex.getMessage());
             }
             
-            FreeFramesLock.lock();
-            BusyFramesLock.lock();
             try {
                 int frames = 1;
                 if(address.getPageOffset() + size >= 1024){
@@ -117,9 +104,6 @@ public class OS implements I_OS{
                 }
             } catch (MemoryFullException | PageFaultException | AccessViolationException ex) {
                 System.err.println(ex.getMessage());
-            } finally {
-                FreeFramesLock.unlock();
-                BusyFramesLock.unlock();
             }
         });
     }
@@ -132,8 +116,6 @@ public class OS implements I_OS{
             } catch (PageFaultException ex) {
                 System.err.println(ex.getMessage());
             }
-            FreeFramesLock.lock();
-            BusyFramesLock.lock();
             try {
                 int frames = 1;
                 if(address.getPageOffset() + size >= 1024){
@@ -148,9 +130,6 @@ public class OS implements I_OS{
                 }
             } catch (PageFaultException ex) {
                 System.err.println(ex.getMessage());
-            } finally {
-                FreeFramesLock.unlock();
-                BusyFramesLock.unlock();
             }
         });
     }
@@ -205,18 +184,11 @@ public class OS implements I_OS{
     @Override
     public void processFinished(int pid){
         threadPool.submit(() -> {
-            FreeFramesLock.lock();
-            BusyFramesLock.lock();
-            try {
-                ArrayList<Integer> frameAddresses = PageTables.get(pid).deAllocateAll(pid);
-                for (Integer f : frameAddresses) {
-                    BusyFrames.remove(f);
-                    FreeFrames.add(f);
-                }
-            } finally {
-                FreeFramesLock.unlock();
-                BusyFramesLock.unlock();
-            }
+            ArrayList<Integer> frameAddresses = PageTables.get(pid).deAllocateAll(pid);
+            for (Integer f : frameAddresses) {
+                BusyFrames.remove(f);
+                FreeFrames.add(f);
+            }            
         });
     }
     
