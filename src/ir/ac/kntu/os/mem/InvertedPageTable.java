@@ -18,6 +18,7 @@ public class InvertedPageTable implements IPageTable{
     private int numberOfProcesses;
     
     private HashMap<Integer, Page> table;
+    TLBCache tlb;
     
     public InvertedPageTable() {
         table = new HashMap<>(1024);
@@ -26,6 +27,7 @@ public class InvertedPageTable implements IPageTable{
             table.get(i).setAddress(i);
         }
         numberOfProcesses = 0;
+        tlb = new TLBCache(5);
     }
     
     public int getNumberOfProcesses() { return numberOfProcesses; }
@@ -68,12 +70,21 @@ public class InvertedPageTable implements IPageTable{
     @Override
     public int translateAddress(VirtualAddress address, int pid) throws PageFaultException, AccessViolationException{
         addressValidationTest(address, pid);
-        for (Page p : table.values()) {
-            if(p.getPid() == pid && p.getPageNumber() == address.getPageNo()){
-                if (p.isActive()) {
-                    return (p.getAddress() << 10)+ address.getPageOffset();
+        try{
+            Page p = tlb.getNode(address.getPageNo());
+            if(p.getPid() == pid && p.isActive()) {
+                return (p.getAddress() << 10)+ address.getPageOffset();
+            }
+        }
+        catch (PageFaultException ex) {
+            for (Page p : table.values()) {
+                if(p.getPid() == pid && p.getPageNumber() == address.getPageNo()){
+                    if (p.isActive()) {
+                        tlb.putNode(address.getPageNo(), p);
+                        return (p.getAddress() << 10)+ address.getPageOffset();
+                    }
+                    break;
                 }
-                break;
             }
         }
         numberOfPageFaults[pid]++;
@@ -82,7 +93,15 @@ public class InvertedPageTable implements IPageTable{
 
     @Override
     public void allocate(VirtualAddress address, int frame, int pid) throws PageFaultException, AccessViolationException{
-        Page p = table.get(frame);
+        Page p;
+        try{
+            p = tlb.getNode(frame);
+        }
+        catch (PageFaultException ex) {
+            p = table.get(frame);
+            tlb.putNode(frame, p);
+        }
+        
         if(p.getPid() != pid && p.isActive()){
             throw new AccessViolationException("process_" + pid + " had an access violation.");
         }
@@ -95,14 +114,26 @@ public class InvertedPageTable implements IPageTable{
     
     @Override
     public int deAllocate(VirtualAddress address, int pid) throws PageFaultException{
-        for (Page p : table.values()) {
-            if(p.getPid() == pid && p.getPageNumber() == address.getPageNo()){
-                p.setActive(false);
-                if(numberOfActivePages[pid] > 0){
-                    numberOfActivePages[pid]--;
-                }
-                return p.getAddress();
+        Page p = null;
+        try{
+            p = tlb.getNode(address.getPageNo());
+            if(p.getPid() == pid && p.isActive()) {
+                return (p.getAddress() << 10)+ address.getPageOffset();
             }
+        }
+        catch (PageFaultException ex) {
+            for (Page q : table.values()) {
+                if(q.getPid() == pid && q.getPageNumber() == address.getPageNo()){
+                    p = q;
+                }
+            }
+        }
+        if(p != null){
+            p.setActive(false);
+            if(numberOfActivePages[pid] > 0){
+                numberOfActivePages[pid]--;
+            }
+            return p.getAddress();
         }
         throw new PageFaultException("process_" + pid + " wanted to access a wrong address.");
     }
